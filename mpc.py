@@ -3,8 +3,9 @@ import numpy as np
 from scipy.optimize import minimize
 from effectorTrajectoryGenerator3D import effectorTrajectoryGenerator3D
 from scipy.integrate import ode
+from modelODE import model_ode 
 
-def cost_function(parameters, predicted_trajectory, reference_trajectory, control_effort, lambda_u):
+def cost_function(parameters, predicted_trajectory, reference_trajectory, control_effort, lambda_u,lambda_e):
     """
     Funkcja kosztu penalizująca błąd trajektorii oraz sterowanie.
     :param parameters: Parametry modelu (długości i masy)
@@ -14,20 +15,28 @@ def cost_function(parameters, predicted_trajectory, reference_trajectory, contro
     :param lambda_u: Waga penalizująca sterowanie
     :return: Wartość funkcji kosztu
     """
-    error = predicted_trajectory[:, :3] - reference_trajectory
-    cost = np.sum(np.linalg.norm(error, axis=1)) + lambda_u * np.sum(np.linalg.norm(control_effort, axis=1))
+
+    error_trajectory = predicted_trajectory - reference_trajectory
+    
+    norm_error = np.sum(np.linalg.norm(error_trajectory, axis=1)) #suma norm euklidesowych
+
+    
+    cost = (
+    lambda_e * norm_error +
+    lambda_u * np.sum(np.linalg.norm(control_effort, axis=1))
+    )
     return cost
 
 
-def predict_future_states(current_state, parameters, N_pred, dt,t):
-    from modelODE import model_ode  # Opóźniony import
+def calculate_trajectory(current_state, parameters, N_pred, dt,t):
+    
  
     predicted_trajectory = np.zeros((N_pred, 3))  # Predicted x, y, z trajectory
     
     # Start with the current state
     solver = ode(model_ode)
-    solver.set_integrator('dopri5', rtol=1e-3, atol=1e-5)
-
+    #  inne solvery: dopri5, vode, lsoda
+    solver.set_integrator('lsoda', rtol=1e-5, atol=1e-6, nsteps=50000)
     solver.set_f_params(parameters)
     solver.set_initial_value(current_state, t)
     
@@ -55,21 +64,13 @@ def predict_future_states(current_state, parameters, N_pred, dt,t):
         #print("end=",end_effector_position)
         # Store the predicted position for this step
         predicted_trajectory[i, :] = end_effector_position
+
     return predicted_trajectory
 
-def calculate_reference_trajectory(t,dt, N_pred, parameters):
-    extended_ref = np.zeros((N_pred, 3))  # Initialize array to hold reference trajectory (N_pred x 3)
 
-    # Loop over each time step to calculate the reference trajectory
-    for i in range(N_pred):
-        current_time = t + i * dt  # Time for each prediction step
-        # Use effectorTrajectoryGenerator3D to get the full trajectory
-        full_trajectory = effectorTrajectoryGenerator3D(current_time, parameters)[0]
-        # Extract the x, y, z positions (first three elements)
-        extended_ref[i, :] = full_trajectory
-    return extended_ref
-def optimize_parameters(initial_parameters, current_state,t, N_pred, dt, lambda_u, optimize_keys):
-    
+
+def optimize_parameters(initial_parameters,current_parameters, current_state,t, N_pred, dt, lambda_u,lambda_e, optimize_keys):
+
     # Wyciągamy tylko te wartości, które chcemy optymalizować
     def extract_values(parameters, keys):
         return np.array([parameters[key] for key in keys])
@@ -83,20 +84,26 @@ def optimize_parameters(initial_parameters, current_state,t, N_pred, dt, lambda_
     # Funkcja celu - optymalizacja tylko wybranych parametrów
     def objective_function(optimized_values):
         # Tymczasowy słownik parametrów z zoptymalizowanymi wartościami
-        temp_parameters = update_parameters(initial_parameters.copy(), optimize_keys, optimized_values)
+        temp_parameters = update_parameters(current_parameters.copy(), optimize_keys, optimized_values)
         control_input = np.zeros((N_pred, 3))  # Zastępcze sterowanie dla predykcji
-        reference_trajectory = calculate_reference_trajectory(t, dt, N_pred, temp_parameters)
-        predicted_trajectory = predict_future_states(current_state, temp_parameters, N_pred, dt,t)
-        cost = cost_function(temp_parameters, predicted_trajectory, reference_trajectory, control_input, lambda_u)
+        predicted_trajectory = calculate_trajectory(current_state, temp_parameters, N_pred, dt,t)
+        cost = cost_function(temp_parameters, predicted_trajectory, reference_trajectory, control_input, lambda_u,lambda_e)
+        print("pt",predicted_trajectory)
+        print("optimized value",optimized_values)
+        print("cost",cost)
         return cost
-    
+    reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt,t)
+    print("rt",reference_trajectory)
     # Wyciągamy początkowe wartości tylko dla wybranych kluczy
-    initial_values = extract_values(initial_parameters, optimize_keys)
+    initial_values = extract_values(current_parameters, optimize_keys)
     
-    # Optymalizacja przy użyciu BFGS
-    result = minimize(objective_function, initial_values, method='BFGS', options={'disp': True, 'maxiter': 100, 'gtol': 1e-4})
+    # Dodajemy ograniczenia dla zmiennych (wszystkie parametry w optimize_keys muszą być nieujemne)
+    bounds = [(1e-2, None) for _ in optimize_keys]
+    
+    # Optymalizacja przy użyciu BFGS alternatywa to L-BFGS-B
+    result = minimize(objective_function, initial_values, method='L-BFGS-B', bounds=bounds, options={'disp': True, 'maxiter': 100, 'gtol': 1e-3})
     
     # Zaktualizowanie parametrów na podstawie wyniku optymalizacji
-    optimized_parameters = update_parameters(initial_parameters, optimize_keys, result.x)
+    optimized_parameters = update_parameters(current_parameters, optimize_keys, result.x)
     
     return optimized_parameters

@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 from modelODE import model_ode
 from mpc import optimize_parameters
-
+import random
 def main():
     """_summary_
 
@@ -23,7 +23,7 @@ def main():
 
     mc = m1 + m2 + m3
 
-    l1 = 0.9980548530155131 # m, długość pierwszego ramienia
+    l1 = 1.0 # m, długość pierwszego ramienia
     l2 = 1.0 # m, długość drugiego ramienia
     l3 = 1.0  # m, długość trzeciego ramienia
 
@@ -41,7 +41,7 @@ def main():
     Kd = 200 * np.eye(3) # Wzmocnienie różniczkowe
 
     init_qr_d1 = np.array([0, 0, 0]) # Początkowa prędkość w stawach
-    init_qr = np.array([1, 1, 1]) # Początkowa pozycja w stawach
+    init_qr = np.array([0, 0, 0]) # Początkowa pozycja w stawach
 
     qr = init_qr
 
@@ -71,7 +71,7 @@ def main():
     ic[3:6] = init_qr
 
     solver = ode(model_ode)
-    solver.set_integrator('vode', rtol=1e-3, atol=1e-5)
+    solver.set_integrator('vode', rtol=1e-2, atol=1e-3,nsteps=50000)
     solver.set_f_params(parameters)
     solver.set_initial_value(ic, 0)
 
@@ -80,31 +80,37 @@ def main():
 
 
     
-    
+    init_parameters=parameters.copy()
+    optimize_keys = ['l1']  # Lista parametrów do optymalizacji
+    # Przypisanie losowych wartości dla parametrów z optimize_keys
+    for key in optimize_keys:
+        if key in parameters:
+            # Przypisanie losowej wartości w określonym zakresie
+            parameters[key] = random.uniform(0.1, 10.0)  # Zakres możesz dostosować do swoich potrzeb
+    print("Current parameters (parametry obecne):", parameters)      
     while solver.successful() and solver.t < tEnd:
-        
-        
         solver.integrate(solver.t + sample_time)
         t.append(solver.t)
         youtput.append(solver.y)
-
-        optimize_keys = ['l2']  # Lista parametrów do optymalizacji
-
         # Wywołanie optymalizacji parametrów
         optimized_parameters = optimize_parameters(
-            initial_parameters=parameters, 
-            current_state=solver.y, 
-            t=solver.t, 
-            N_pred=5, 
-            dt=sample_time, 
-            lambda_u=0.01,
+            initial_parameters=init_parameters, #parametry rzeczywiste których szukamy
+            current_parameters=parameters, #parametry obecne
+            current_state=solver.y, # obecny stan
+            t=solver.t, # obecny czas
+            N_pred=5, # ilość kroków predykcji
+            dt=sample_time, # próbka czasu
+            lambda_u=0.00, # współczynnik control effort
+            lambda_e = 1.0,
+            
             optimize_keys=optimize_keys  # Optymalizujemy tylko wybrane parametry
         )
-
+        print("Current parameters (parametry obecne):", parameters)
         print("czas=",solver.t)
         # Zaktualizowanie parametrów po optymalizacji
         parameters.update(optimized_parameters)
         solver.set_f_params(parameters)
+
     t = np.array(t)
     youtput = np.array(youtput)
 

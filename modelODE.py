@@ -118,10 +118,6 @@ def model_ode(t, input_args, parameters):
 
 
     detJ = np.linalg.det(J)
-    detM = np.linalg.det(M)
-    if detM == 0 or detJ == 0:
-        raise ValueError("Macierz M lub J jest osobliwa.")
-    
     MInv = np.linalg.inv(M)
     
     
@@ -132,7 +128,12 @@ def model_ode(t, input_args, parameters):
     # calculate G
     # G = J M^-1
     G = J @ MInv
-
+    detG = np.linalg.det(G)
+    
+    k=0.001
+    if detG<k:
+        G=k*np.eye(3)
+        detG = np.linalg.det(G)
     
     qch = np.array([xch, ych, zch])  # Aktualna pozycja efektora
     qch_d1 = np.array([xch_d1, ych_d1, zch_d1]) # Aktualna prędkość
@@ -146,8 +147,8 @@ def model_ode(t, input_args, parameters):
     e_d1 = e_d1.reshape(-1, 1)
     # calculate new input to the system v
     #  v = qd'' - Kd e' - Kp e
-    # v = qchd_d2 - Kd @ e_d1 - Kp @ e
-    v = - Kd @ e_d1 - Kp @ e
+    qchdd2=qchd_d2.reshape(-1, 1)
+    v = qchdd2  - Kd @ e_d1 - Kp @ e
     #energy_penalty = 0.01 * np.sum(v**2)
     #v -= energy_penalty
     
@@ -172,7 +173,6 @@ def model_ode(t, input_args, parameters):
     # calculate state
     qr_d2 = MInv @ (B @ u - C @ q_d1 - D - T)
     dets = np.array([detG, detJ])
-    
     output_args = np.zeros(6)
     output_args[0:3] = qr_d2.flatten()
     output_args[3:6] = qr_d1
