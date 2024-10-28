@@ -4,8 +4,8 @@ from scipy.optimize import minimize
 from effectorTrajectoryGenerator3D import effectorTrajectoryGenerator3D
 from scipy.integrate import ode
 from modelODE import model_ode 
-
-def cost_function(parameters, predicted_trajectory, reference_trajectory, control_effort, lambda_u,lambda_e):
+from scipy.optimize import Bounds
+def cost_function( predicted_trajectory, reference_trajectory, lambda_u,lambda_e, N_pred):
     """
     Funkcja kosztu penalizująca błąd trajektorii oraz sterowanie.
     :param parameters: Parametry modelu (długości i masy)
@@ -15,16 +15,24 @@ def cost_function(parameters, predicted_trajectory, reference_trajectory, contro
     :param lambda_u: Waga penalizująca sterowanie
     :return: Wartość funkcji kosztu
     """
-
-    error_trajectory = predicted_trajectory - reference_trajectory
-    
+    if predicted_trajectory.shape != reference_trajectory.shape:
+        # Wypisanie ostrzeżenia o różnych rozmiarach
+        print("Ostrzeżenie: Przewidywana i referencyjna trajektoria mają różne rozmiary!")
+        
+        # Dopasowanie rozmiarów wektorów
+        min_length = min(predicted_trajectory.shape[0], reference_trajectory.shape[0])
+        predicted_trajectory = predicted_trajectory[:min_length]
+        reference_trajectory = reference_trajectory[:min_length]
+        
+    error_trajectory = predicted_trajectory[:, 3:6] - reference_trajectory[:, 3:6]
+    control_effort = predicted_trajectory[:, 0:3] - reference_trajectory[:, 0:3]
     norm_error = np.sum(np.linalg.norm(error_trajectory, axis=1)) #suma norm euklidesowych
-
+    control_effort_error = np.sum(np.linalg.norm(control_effort, axis=1)) #suma norm euklidesowych
     
     cost = (
     lambda_e * norm_error +
-    lambda_u * np.sum(np.linalg.norm(control_effort, axis=1))
-    )
+    lambda_u * control_effort_error
+    ) / N_pred
     return cost
 
 
@@ -54,54 +62,52 @@ def calculate_trajectory(current_state, parameters, N_pred, dt,t):
         
     t = np.array(t)
     youtput = np.array(youtput)  
-    for i in range(min(N_pred, len(youtput))):
-        # Get the predicted state from the modelODE function
-        _, additional_info, _ = model_ode(t[i], youtput[i, :], parameters)
-        
-        # Extract the end-effector position from the additional info if necessary
-        # Or use the predicted state to build the trajectory
-        end_effector_position = additional_info['end_effector_position']
-        #print("end=",end_effector_position)
-        # Store the predicted position for this step
-        predicted_trajectory[i, :] = end_effector_position
 
-    return predicted_trajectory
+    return youtput
 
 
 
-def optimize_parameters(initial_parameters,current_parameters, current_state,t, N_pred, dt, lambda_u,lambda_e, optimize_keys):
+def optimize_parameters(initial_parameters, current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys):
 
-    # Wyciągamy tylko te wartości, które chcemy optymalizować
+    # Funkcja pomocnicza: wyciąga wartości parametrów, które chcemy optymalizować
     def extract_values(parameters, keys):
         return np.array([parameters[key] for key in keys])
     
-    # Aktualizujemy tylko zoptymalizowane wartości
+    # Funkcja pomocnicza: aktualizuje słownik parametrów na podstawie zoptymalizowanych wartości
     def update_parameters(parameters, keys, values):
         for key, value in zip(keys, values):
             parameters[key] = value
         return parameters
     
-    # Funkcja celu - optymalizacja tylko wybranych parametrów
+    # Tworzymy trajektorię referencyjną dla optymalizacji
+    reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt, t)
+    
+    # Funkcja celu: zwraca koszt na podstawie zoptymalizowanych parametrów
     def objective_function(optimized_values):
         # Tymczasowy słownik parametrów z zoptymalizowanymi wartościami
         temp_parameters = update_parameters(current_parameters.copy(), optimize_keys, optimized_values)
-        control_input = np.zeros((N_pred, 3))  # Zastępcze sterowanie dla predykcji
-        predicted_trajectory = calculate_trajectory(current_state, temp_parameters, N_pred, dt,t)
-        cost = cost_function(temp_parameters, predicted_trajectory, reference_trajectory, control_input, lambda_u,lambda_e)
-        print("pt",predicted_trajectory)
-        print("optimized value",optimized_values)
-        print("cost",cost)
+        
+        # Predykcja trajektorii na podstawie obecnych parametrów
+        predicted_trajectory = calculate_trajectory(current_state, temp_parameters, N_pred, dt, t)
+        
+       
+        # Obliczenie kosztu na podstawie funkcji kosztu
+        cost = cost_function(predicted_trajectory, reference_trajectory, lambda_u, lambda_e, N_pred)
+        
+        # Wyświetlanie wartości dla celów debugowania
+        print("Zoptymalizowane wartości:", optimized_values)
+        print("Koszt:", cost)
+        
         return cost
-    reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt,t)
-    print("rt",reference_trajectory)
-    # Wyciągamy początkowe wartości tylko dla wybranych kluczy
+    
+    # Wyciągamy początkowe wartości parametrów, które będą optymalizowane
     initial_values = extract_values(current_parameters, optimize_keys)
     
-    # Dodajemy ograniczenia dla zmiennych (wszystkie parametry w optimize_keys muszą być nieujemne)
-    bounds = [(1e-2, None) for _ in optimize_keys]
+    # Ustawienie ograniczeń dla każdego parametru w optimize_keys
+    bounds = Bounds([0.1] * len(optimize_keys), [1000] * len(optimize_keys))
     
-    # Optymalizacja przy użyciu BFGS alternatywa to L-BFGS-B
-    result = minimize(objective_function, initial_values, method='L-BFGS-B', bounds=bounds, options={'disp': True, 'maxiter': 100, 'gtol': 1e-3})
+    # Wywołanie optymalizacji przy użyciu metody SLSQP
+    result = minimize(objective_function, initial_values, method='L-BFGS-B', bounds=bounds, options={'disp': True, 'maxiter': 100, 'gtol': 1e-3, 'ftol': 1e-4})
     
     # Zaktualizowanie parametrów na podstawie wyniku optymalizacji
     optimized_parameters = update_parameters(current_parameters, optimize_keys, result.x)

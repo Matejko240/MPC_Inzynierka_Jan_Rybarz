@@ -6,13 +6,35 @@ from matplotlib.animation import FuncAnimation
 from modelODE import model_ode
 from mpc import optimize_parameters
 import random
+import csv
+import os
+
+def generate_unique_filename(base_name, extension):
+    filename = f"{base_name}{extension}"
+    counter = 1
+    while os.path.exists(filename):
+        filename = f"{base_name}({counter}){extension}"
+        counter += 1
+    return filename
+
+
 def main():
     """_summary_
 
     Returns:
         _type_: _description_
     """
+    
+        # Tworzenie folderu "dane", jeśli nie istnieje
+    if not os.path.exists("dane"):
+        os.makedirs("dane")
+        
     tEnd = 10
+    sample_time = 0.5
+    lambda_u = 0.5 # współczynnik błędu qr_d2
+    lambda_e = 1.0 # współczynnik błędu qr_d1
+    optimize_keys = ['l1']  # Lista parametrów do optymalizacji
+    N_pred = 10
     np.random.seed(123456789)
 
     Pi = np.pi
@@ -23,9 +45,9 @@ def main():
 
     mc = m1 + m2 + m3
 
-    l1 = 1.0 # m, długość pierwszego ramienia
-    l2 = 1.0 # m, długość drugiego ramienia
-    l3 = 1.0  # m, długość trzeciego ramienia
+    l1 = 2.0 # m, długość pierwszego ramienia
+    l2 = 4.0 # m, długość drugiego ramienia
+    l3 = 3.0  # m, długość trzeciego ramienia
 
     a = 0
     b = 0
@@ -45,7 +67,6 @@ def main():
 
     qr = init_qr
 
-    sample_time = 0.5
 
     parameters = {
         'm1': m1,
@@ -81,36 +102,94 @@ def main():
 
     
     init_parameters=parameters.copy()
-    optimize_keys = ['l1']  # Lista parametrów do optymalizacji
+    
     # Przypisanie losowych wartości dla parametrów z optimize_keys
     for key in optimize_keys:
         if key in parameters:
             # Przypisanie losowej wartości w określonym zakresie
             parameters[key] = random.uniform(0.1, 10.0)  # Zakres możesz dostosować do swoich potrzeb
-    print("Current parameters (parametry obecne):", parameters)      
+    print("Current parameters (parametry obecne):", parameters)
+    
+    # Nazwa bazowa pliku
+    base_name = f"dane/mpc_log_{'_'.join(optimize_keys)}_tEnd{tEnd}_dt{sample_time}_N_pred{N_pred}_lambdaU{lambda_u}_lambdaE{lambda_e}"
+    
+    # Generowanie unikalnej nazwy pliku CSV
+    filename = generate_unique_filename(base_name, ".csv")
+    print(f"Nazwa pliku: {filename}")
+    
+    optimized_values_series = {key: [] for key in optimize_keys}  # Inicjalizacja przechowywania wartości
+
+    # Tworzenie pliku CSV i zapis nagłówka
+    with open(filename, "w", newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        actual_values = [parameters[key] for key in optimize_keys]  # Zaktualizowanie wartości rzeczywistych
+        parameter_names = ["czas"] + [f"parametr_{key}" for key in optimize_keys] + \
+                          [f"wartosc_rzeczywista_{key} = {init_parameters[key]}" for key in optimize_keys]
+        csvwriter.writerow(parameter_names)
+        csvwriter.writerow(["Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji"])
+     
+     
+     
+        # Optymalizacja parametrów dla t = 0.0
+    optimized_parameters = optimize_parameters(
+        initial_parameters=init_parameters,
+        current_parameters=parameters,
+        current_state=solver.y,
+        t=solver.t,
+        N_pred=N_pred,
+        dt=sample_time,
+        lambda_u=lambda_u,
+        lambda_e=lambda_e,
+        optimize_keys=optimize_keys
+    )
+
+    # Aktualizacja parametrów po optymalizacji początkowej i przekazanie ich do solvera
+    parameters.update(optimized_parameters)
+    solver.set_f_params(parameters)
+
+    # Zapisanie wyników optymalizacji dla t = 0.0 do serii oraz pliku CSV
+    for key in optimize_keys:
+        optimized_values_series[key].append(optimized_parameters[key])
+
+    with open(filename, "a", newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        row = [solver.t] + [optimized_parameters[key] for key in optimize_keys]
+        csvwriter.writerow(row)
+             
     while solver.successful() and solver.t < tEnd:
+        # 1. Krok integracji, aby uzyskać nowy stan systemu
         solver.integrate(solver.t + sample_time)
         t.append(solver.t)
         youtput.append(solver.y)
-        # Wywołanie optymalizacji parametrów
+
+        # 2. Optymalizacja parametrów na podstawie nowego stanu
         optimized_parameters = optimize_parameters(
-            initial_parameters=init_parameters, #parametry rzeczywiste których szukamy
-            current_parameters=parameters, #parametry obecne
-            current_state=solver.y, # obecny stan
-            t=solver.t, # obecny czas
-            N_pred=5, # ilość kroków predykcji
-            dt=sample_time, # próbka czasu
-            lambda_u=0.00, # współczynnik control effort
-            lambda_e = 1.0,
-            
-            optimize_keys=optimize_keys  # Optymalizujemy tylko wybrane parametry
+            initial_parameters=init_parameters,
+            current_parameters=parameters,
+            current_state=solver.y,
+            t=solver.t,
+            N_pred=N_pred,
+            dt=sample_time,
+            lambda_u=lambda_u,
+            lambda_e=lambda_e,
+            optimize_keys=optimize_keys
         )
-        print("Current parameters (parametry obecne):", parameters)
-        print("czas=",solver.t)
-        # Zaktualizowanie parametrów po optymalizacji
+
+        # 3. Aktualizacja parametrów po optymalizacji i przekazanie ich do solvera
         parameters.update(optimized_parameters)
         solver.set_f_params(parameters)
 
+        # 4. Zbieranie wartości zoptymalizowanych parametrów dla wykresu
+        for key in optimize_keys:
+            optimized_values_series[key].append(optimized_parameters[key])
+
+        # 5. Zapis danych do pliku CSV
+        with open(filename, "a", newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            row = [solver.t] + [optimized_parameters[key] for key in optimize_keys]
+            csvwriter.writerow(row)
+
+        
     t = np.array(t)
     youtput = np.array(youtput)
 
@@ -147,7 +226,32 @@ def main():
     print("l1",parameters['l1'] )
     print("l2",parameters['l2'] )
     print("l3",parameters['l3'] )
+    
+    time_series = np.array(t)  # Czas symulacji
 
+    # Dopasowanie rozmiarów time_series i optimized_values_series
+    min_length = min(len(time_series), len(list(optimized_values_series.values())[0]))
+    time_series = time_series[:min_length]
+    for key in optimized_values_series:
+        optimized_values_series[key] = optimized_values_series[key][:min_length]
+    # Rysowanie jednego wykresu dla wszystkich optymalizowanych parametrów
+    plt.figure()
+
+    # Dodanie wartości dla każdego parametru na jednym wykresie
+    for key in optimize_keys:
+        plt.plot(time_series, optimized_values_series[key], label=f"Optymalizowana wartość {key}")
+        plt.axhline(y=init_parameters[key], color='grey', linestyle='--', label=f"Rzeczywista wartość {key} = {init_parameters[key]}")
+
+    plt.xlabel('Czas [s]')
+    plt.ylabel('Wartości parametrów')
+    plt.title('Porównanie wartości rzeczywistych i optymalizowanych parametrów')
+    plt.legend()
+    plt.grid(True)
+    plot_filename = generate_unique_filename(base_name, ".png")
+    plt.savefig(plot_filename)
+    plt.show()
+
+"""
     # Drawing the final chart
 
     plt.figure()
@@ -188,7 +292,7 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
-
-
+"""
+    
 if __name__ == "__main__":
     main()

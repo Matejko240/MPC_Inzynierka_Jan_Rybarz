@@ -176,7 +176,7 @@ def model_ode(t, input_args, parameters):
     output_args = np.zeros(6)
     output_args[0:3] = qr_d2.flatten()
     output_args[3:6] = qr_d1
-
+    
     additional = {
         'qchd': qchd,
         'qchd_d1': qchd_d1,
