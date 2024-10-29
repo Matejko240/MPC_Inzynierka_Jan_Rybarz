@@ -1,10 +1,10 @@
-#from modelODE import model_ode
 import numpy as np
 from scipy.optimize import minimize
-from effectorTrajectoryGenerator3D import effectorTrajectoryGenerator3D
 from scipy.integrate import ode
 from modelODE import model_ode 
 from scipy.optimize import Bounds
+from scipy.optimize import differential_evolution
+
 def cost_function( predicted_trajectory, reference_trajectory, lambda_u,lambda_e, N_pred):
     """
     Funkcja kosztu penalizująca błąd trajektorii oraz sterowanie.
@@ -66,48 +66,49 @@ def calculate_trajectory(current_state, parameters, N_pred, dt,t):
     return youtput
 
 
+# Funkcja pomocnicza: aktualizuje słownik parametrów na podstawie zoptymalizowanych wartości
+def update_parameters(parameters, keys, values):
+    for key, value in zip(keys, values):
+        parameters[key] = value
+    return parameters
+# Funkcja celu: zwraca koszt na podstawie zoptymalizowanych parametrów
+def objective_function(optimized_values, current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys, reference_trajectory):
+    # Tymczasowy słownik parametrów z zoptymalizowanymi wartościami
+    temp_parameters = update_parameters(current_parameters.copy(), optimize_keys, optimized_values)
+    
+    # Predykcja trajektorii na podstawie obecnych parametrów
+    predicted_trajectory = calculate_trajectory(current_state, temp_parameters, N_pred, dt, t)
+    
+    # Obliczenie kosztu na podstawie funkcji kosztu
+    cost = cost_function(predicted_trajectory, reference_trajectory, lambda_u, lambda_e, N_pred)
+    
+    # Wyświetlanie wartości dla celów debugowania
+    print("Zoptymalizowane wartości:", optimized_values)
+    print("Koszt:", cost)
+    
+    return cost
 
 def optimize_parameters(initial_parameters, current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys):
-
-    # Funkcja pomocnicza: wyciąga wartości parametrów, które chcemy optymalizować
-    def extract_values(parameters, keys):
-        return np.array([parameters[key] for key in keys])
-    
-    # Funkcja pomocnicza: aktualizuje słownik parametrów na podstawie zoptymalizowanych wartości
-    def update_parameters(parameters, keys, values):
-        for key, value in zip(keys, values):
-            parameters[key] = value
-        return parameters
     
     # Tworzymy trajektorię referencyjną dla optymalizacji
     reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt, t)
     
-    # Funkcja celu: zwraca koszt na podstawie zoptymalizowanych parametrów
-    def objective_function(optimized_values):
-        # Tymczasowy słownik parametrów z zoptymalizowanymi wartościami
-        temp_parameters = update_parameters(current_parameters.copy(), optimize_keys, optimized_values)
-        
-        # Predykcja trajektorii na podstawie obecnych parametrów
-        predicted_trajectory = calculate_trajectory(current_state, temp_parameters, N_pred, dt, t)
-        
-       
-        # Obliczenie kosztu na podstawie funkcji kosztu
-        cost = cost_function(predicted_trajectory, reference_trajectory, lambda_u, lambda_e, N_pred)
-        
-        # Wyświetlanie wartości dla celów debugowania
-        print("Zoptymalizowane wartości:", optimized_values)
-        print("Koszt:", cost)
-        
-        return cost
-    
-    # Wyciągamy początkowe wartości parametrów, które będą optymalizowane
-    initial_values = extract_values(current_parameters, optimize_keys)
-    
     # Ustawienie ograniczeń dla każdego parametru w optimize_keys
-    bounds = Bounds([0.1] * len(optimize_keys), [1000] * len(optimize_keys))
+    bounds = [(0.1, 1000)] * len(optimize_keys)
     
-    # Wywołanie optymalizacji przy użyciu metody SLSQP
-    result = minimize(objective_function, initial_values, method='L-BFGS-B', bounds=bounds, options={'disp': True, 'maxiter': 100, 'gtol': 1e-3, 'ftol': 1e-4})
+    # Wywołanie optymalizacji przy użyciu metody differential_evolution, używając objective_function bezpośrednio (wczesniej L-BFGS-B)
+    result = differential_evolution(
+        objective_function, 
+        bounds, 
+        args=(current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys, reference_trajectory),
+        strategy='best1bin', 
+        maxiter=1000, 
+        tol=0.01, 
+        disp=True, 
+        seed=42, 
+        workers=-1,          # dla wielowątkowości
+        updating='deferred'  # jawne ustawienie strategii aktualizacji
+    )
     
     # Zaktualizowanie parametrów na podstawie wyniku optymalizacji
     optimized_parameters = update_parameters(current_parameters, optimize_keys, result.x)

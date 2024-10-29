@@ -31,7 +31,7 @@ def main():
         
     tEnd = 10
     sample_time = 0.5
-    lambda_u = 0.5 # współczynnik błędu qr_d2
+    lambda_u = 1.0 # współczynnik błędu qr_d2
     lambda_e = 1.0 # współczynnik błędu qr_d1
     optimize_keys = ['l1']  # Lista parametrów do optymalizacji
     N_pred = 10

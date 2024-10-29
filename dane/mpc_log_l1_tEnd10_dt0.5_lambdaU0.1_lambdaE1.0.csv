@@ -1,4 +1,4 @@
-czas,parametr_l1,wartosc_rzeczywista_l1 = 2.0
+czas,parametr_l1,wartosc_rzeczywista_l1 = 2.0, metoda optymalizacji L-BFGS-B
 Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji
 0,7.597350760038093
 0.5,7.597350760038093
