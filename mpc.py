@@ -113,4 +113,7 @@ def optimize_parameters(initial_parameters, current_parameters, current_state, t
     # Zaktualizowanie parametrów na podstawie wyniku optymalizacji
     optimized_parameters = update_parameters(current_parameters, optimize_keys, result.x)
     
-    return optimized_parameters
+    # Obliczenie trajektorii dla zoptymalizowanych parametrów
+    optimized_trajectory = calculate_trajectory(current_state, optimized_parameters, N_pred, dt, t)
+    
+    return optimized_parameters, optimized_trajectory, reference_trajectory

@@ -1,4 +1,5 @@
-czas,parametr_l1,wartosc_rzeczywista_l1 = 2.0, metoda optymalizacji differential_evolution,strategy='best1bin'
+czas,parametr_l1
+wartosc_rzeczywista_l1 = 2.0
 Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji
 0,4.224626433794185
 0.5,668.0721623725392

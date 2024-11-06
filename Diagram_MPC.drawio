@@ -1,0 +1,60 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.7.17 Chrome/128.0.6613.36 Electron/32.0.1 Safari/537.36" version="24.7.17">
+  <diagram name="Strona-1" id="CGVZ2vEUUydsN6G636rV">
+    <mxGraphModel dx="2152" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-49" value="Zidentyfikowane parametry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontStyle=1;fontSize=16;" edge="1" parent="1" source="MnuKIDYK4vB_Lf7VjK-N-40">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="670" y="531" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-40" value="MPC" style="rounded=1;whiteSpace=wrap;html=1;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="-230.82" y="390.55" width="650" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-48" value="aktualny stan manipulatora(y)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontStyle=1;fontSize=16;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;" edge="1" parent="1" source="MnuKIDYK4vB_Lf7VjK-N-35" target="MnuKIDYK4vB_Lf7VjK-N-40">
+          <mxGeometry x="0.0046" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-35" value="Obiekt Sterowania" style="rounded=1;whiteSpace=wrap;html=1;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="-0.8200000000000003" y="730" width="190" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-36" value="&lt;span style=&quot;font-size: 16px;&quot;&gt;Trajektoria referencyjna(y_ref)&lt;/span&gt;" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=16;strokeWidth=1;edgeStyle=orthogonalEdgeStyle;fontStyle=1" edge="1" parent="1">
+          <mxGeometry x="0.0029" width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-490" y="525" as="sourcePoint" />
+            <mxPoint x="-230.82000000000016" y="524.8" as="targetPoint" />
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-17" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="-204.15333333333334" y="440.9957081545065" width="241.3988888888889" height="168.5991416309013" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-2" value="Model" style="rounded=1;whiteSpace=wrap;html=1;container=0;fontStyle=1;fontSize=20;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" vertex="1" parent="MnuKIDYK4vB_Lf7VjK-N-17">
+          <mxGeometry width="241.39888888888876" height="168.5991416309013" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-14" value="&lt;b style=&quot;font-size: 17px;&quot;&gt;Sterowanie I/O Decoupling&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=17;container=0;" vertex="1" parent="MnuKIDYK4vB_Lf7VjK-N-17">
+          <mxGeometry x="67.05524691358023" y="93.66618979494517" width="107.2883950617284" height="62.44412652996345" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-13" value="Ograniczenia" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=17;container=0;" vertex="1" parent="MnuKIDYK4vB_Lf7VjK-N-17">
+          <mxGeometry x="67.05524691358023" y="10.407354421660573" width="107.2883950617284" height="62.44412652996345" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-41" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="99.18" y="440" width="270" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-18" value="Optymalizacja" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fontSize=20;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;" vertex="1" parent="MnuKIDYK4vB_Lf7VjK-N-41">
+          <mxGeometry width="270" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-7" value="Funkcja Kosztu" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;labelPosition=center;verticalLabelPosition=middle;align=center;verticalAlign=middle;fontSize=20;" vertex="1" parent="MnuKIDYK4vB_Lf7VjK-N-41">
+          <mxGeometry x="51.92307692307693" y="45.33333333333333" width="166.15384615384616" height="79.33333333333333" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="MnuKIDYK4vB_Lf7VjK-N-2" target="MnuKIDYK4vB_Lf7VjK-N-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="MnuKIDYK4vB_Lf7VjK-N-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="MnuKIDYK4vB_Lf7VjK-N-18" target="MnuKIDYK4vB_Lf7VjK-N-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

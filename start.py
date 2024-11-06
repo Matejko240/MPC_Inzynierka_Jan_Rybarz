@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.integrate import ode
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.animation import FuncAnimation
 from modelODE import model_ode
 from mpc import optimize_parameters
 import random
@@ -17,7 +15,34 @@ def generate_unique_filename(base_name, extension):
         counter += 1
     return filename
 
-
+def save_to_csv(filename, solver_time, optimized_parameters, optimize_keys, reference_trajectory, optimized_trajectory):
+    """Funkcja zapisująca dane do pliku CSV.
+    
+    Args:
+        filename (str): Ścieżka do pliku CSV.
+        solver_time (float): Czas symulacji.
+        optimized_parameters (dict): Zoptymalizowane parametry.
+        optimize_keys (list): Klucze parametrów do optymalizacji.
+        reference_trajectory (list): Trajektoria referencyjna.
+        optimized_trajectory (list): Trajektoria zoptymalizowanych parametrów.
+    """
+    with open(filename, "a", newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        
+        # Zapisujemy czas i zoptymalizowane parametry
+        row = [solver_time] + [optimized_parameters[key] for key in optimize_keys]
+        csvwriter.writerow(row)
+        
+        # Zapisujemy 10 wierszy dla reference_trajectory
+        csvwriter.writerow(["Trajektoria referencyjna:"])
+        for ref in reference_trajectory:
+            csvwriter.writerow(ref)
+        
+        # Zapisujemy 10 wierszy dla optimized_trajectory
+        csvwriter.writerow(["Trajektoria zoptymalizowanych parametrów:"])
+        for opt in optimized_trajectory:
+            csvwriter.writerow(opt)
+            
 def main():
     """_summary_
 
@@ -31,10 +56,10 @@ def main():
         
     tEnd = 10
     sample_time = 0.5
-    lambda_u = 1.0 # współczynnik błędu qr_d2
     lambda_e = 1.0 # współczynnik błędu qr_d1
-    optimize_keys = ['l1']  # Lista parametrów do optymalizacji
-    N_pred = 10
+    lambda_u = 0.0 # współczynnik błędu qr_d2
+    optimize_keys = ['l1','l3']  # Lista parametrów do optymalizacji
+    N_pred = 5
     np.random.seed(123456789)
 
     Pi = np.pi
@@ -107,7 +132,7 @@ def main():
     for key in optimize_keys:
         if key in parameters:
             # Przypisanie losowej wartości w określonym zakresie
-            parameters[key] = random.uniform(0.1, 10.0)  # Zakres możesz dostosować do swoich potrzeb
+            parameters[key] = random.uniform(0.1, 1000.0) 
     print("Current parameters (parametry obecne):", parameters)
     
     # Nazwa bazowa pliku
@@ -122,16 +147,18 @@ def main():
     # Tworzenie pliku CSV i zapis nagłówka
     with open(filename, "w", newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        actual_values = [parameters[key] for key in optimize_keys]  # Zaktualizowanie wartości rzeczywistych
-        parameter_names = ["czas"] + [f"parametr_{key}" for key in optimize_keys] + \
-                          [f"wartosc_rzeczywista_{key} = {init_parameters[key]}" for key in optimize_keys]
-        csvwriter.writerow(parameter_names)
-        csvwriter.writerow(["Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji"])
+        parameter_names = ["czas"] + [f"parametr_{key}" for key in optimize_keys] 
+        trejectory = ["qr_d2[0]","qr_d2[1]","qr_d2[2]","qr_d1[0]","qr_d1[1]","qr_d1[2]"]
+        real_values = [f"wartosc_rzeczywista_{key} = {init_parameters[key]}" for key in optimize_keys]
+        csvwriter.writerow(parameter_names )
+        csvwriter.writerow(trejectory)
+        csvwriter.writerow(real_values)
+        csvwriter.writerow(["Czas symulacji,wartosci optymalizowanych parametrow oraz Trajektoria referencyjna i dla zoptymalizowananego parametru w kazdej iteracji"])
      
      
      
         # Optymalizacja parametrów dla t = 0.0
-    optimized_parameters = optimize_parameters(
+    optimized_parameters, optimized_trajectory, reference_trajectory = optimize_parameters(
         initial_parameters=init_parameters,
         current_parameters=parameters,
         current_state=solver.y,
@@ -145,25 +172,23 @@ def main():
 
     # Aktualizacja parametrów po optymalizacji początkowej i przekazanie ich do solvera
     parameters.update(optimized_parameters)
-    solver.set_f_params(parameters)
+    solver.set_f_params(init_parameters)
 
     # Zapisanie wyników optymalizacji dla t = 0.0 do serii oraz pliku CSV
     for key in optimize_keys:
         optimized_values_series[key].append(optimized_parameters[key])
 
-    with open(filename, "a", newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        row = [solver.t] + [optimized_parameters[key] for key in optimize_keys]
-        csvwriter.writerow(row)
-             
+    save_to_csv(filename, solver.t, optimized_parameters, optimize_keys, reference_trajectory, optimized_trajectory)
+
+                    
     while solver.successful() and solver.t < tEnd:
         # 1. Krok integracji, aby uzyskać nowy stan systemu
         solver.integrate(solver.t + sample_time)
         t.append(solver.t)
         youtput.append(solver.y)
 
-        # 2. Optymalizacja parametrów na podstawie nowego stanu
-        optimized_parameters = optimize_parameters(
+        # 2. Optymalizacja parametrów na podstawie nowego stanuW
+        optimized_parameters, optimized_trajectory, reference_trajectory = optimize_parameters(
             initial_parameters=init_parameters,
             current_parameters=parameters,
             current_state=solver.y,
@@ -177,17 +202,14 @@ def main():
 
         # 3. Aktualizacja parametrów po optymalizacji i przekazanie ich do solvera
         parameters.update(optimized_parameters)
-        solver.set_f_params(parameters)
+        #solver.set_f_params(parameters)
 
         # 4. Zbieranie wartości zoptymalizowanych parametrów dla wykresu
         for key in optimize_keys:
             optimized_values_series[key].append(optimized_parameters[key])
 
         # 5. Zapis danych do pliku CSV
-        with open(filename, "a", newline='') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            row = [solver.t] + [optimized_parameters[key] for key in optimize_keys]
-            csvwriter.writerow(row)
+        save_to_csv(filename, solver.t, optimized_parameters, optimize_keys, reference_trajectory, optimized_trajectory)
 
         
     t = np.array(t)
@@ -229,70 +251,34 @@ def main():
     
     time_series = np.array(t)  # Czas symulacji
 
-    # Dopasowanie rozmiarów time_series i optimized_values_series
+# Dopasowanie rozmiarów time_series i optimized_values_series
     min_length = min(len(time_series), len(list(optimized_values_series.values())[0]))
     time_series = time_series[:min_length]
     for key in optimized_values_series:
         optimized_values_series[key] = optimized_values_series[key][:min_length]
+
     # Rysowanie jednego wykresu dla wszystkich optymalizowanych parametrów
-    plt.figure()
+    plt.figure(figsize=(10, 6))  # Większy rozmiar wykresu dla lepszej widoczności
 
     # Dodanie wartości dla każdego parametru na jednym wykresie
     for key in optimize_keys:
-        plt.plot(time_series, optimized_values_series[key], label=f"Optymalizowana wartość {key}")
+        plt.plot(time_series, optimized_values_series[key], label=f"Optymalizowana wartość {key}", linewidth=2)
         plt.axhline(y=init_parameters[key], color='grey', linestyle='--', label=f"Rzeczywista wartość {key} = {init_parameters[key]}")
 
-    plt.xlabel('Czas [s]')
-    plt.ylabel('Wartości parametrów')
-    plt.title('Porównanie wartości rzeczywistych i optymalizowanych parametrów')
-    plt.legend()
-    plt.grid(True)
+    # Ustawienia wykresu
+    plt.yscale('log')  # Skala logarytmiczna na osi Y
+    plt.xlabel('Czas [s]', fontsize=12)
+    plt.ylabel('Wartości parametrów (skala logarytmiczna)', fontsize=12)
+    plt.title('Porównanie wartości rzeczywistych i optymalizowanych parametrów', fontsize=14)
+    plt.grid(visible=True, which='both', linestyle='--', linewidth=0.5)  # Dodanie siatki dla lepszej czytelności
+    plt.legend(loc='upper right', fontsize=10, framealpha=0.9)  # Przezroczyste tło legendy
+    plt.tight_layout()  # Automatyczne dopasowanie elementów wykresu
+
+    # Zapisanie i wyświetlenie wykresu
     plot_filename = generate_unique_filename(base_name, ".png")
     plt.savefig(plot_filename)
     plt.show()
 
-"""
-    # Drawing the final chart
-
-    plt.figure()
-
-    # Trajektoria referencyjna
-    plt.plot(sim_data['time'], additional['qchd'][0, :], label='qchd_x (ref)', color='red', linestyle='--')
-    plt.plot(sim_data['time'], additional['qchd'][1, :], label='qchd_y (ref)', color='green', linestyle='--')
-    plt.plot(sim_data['time'], additional['qchd'][2, :], label='qchd_z (ref)', color='blue', linestyle='--')
-
-    # Aktualna trajektoria efektora
-    plt.plot(sim_data['time'], additional['k'][0, :], label='x (actual)', color='red')
-    plt.plot(sim_data['time'], additional['k'][1, :], label='y (actual)', color='green')
-    plt.plot(sim_data['time'], additional['k'][2, :], label='z (actual)', color='blue')
-    
-
-
-
-    plt.xlabel('Czas [s]')
-    plt.ylabel('Pozycja efektora')
-    plt.title('Trajektoria efektora (rzeczywista vs referencyjna)')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-    
-    
-    # Wykres dla błędów pozycji i prędkości
-    plt.figure()
-
-    # Norma błędu pozycji
-    plt.plot(sim_data['time'], error_norm, label='Norma błędu pozycji (e)', color='black', linestyle=':')
-    
-    # Norma błędu prędkości
-    plt.plot(sim_data['time'], error_d1_norm, label='Norma błędu prędkości (e_d1)', color='purple', linestyle='-.')
-
-    plt.xlabel('Czas [s]')
-    plt.ylabel('Norma błędu')
-    plt.title('Norma błędu pozycji i prędkości')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-"""
     
 if __name__ == "__main__":
     main()
