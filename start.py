@@ -15,7 +15,7 @@ def generate_unique_filename(base_name, extension):
         counter += 1
     return filename
 
-def save_to_csv(filename, solver_time, optimized_parameters, optimize_keys, reference_trajectory, optimized_trajectory):
+def save_to_csv(filename, solver_time, optimized_parameters, optimize_keys,state):
     """Funkcja zapisująca dane do pliku CSV.
     
     Args:
@@ -28,20 +28,22 @@ def save_to_csv(filename, solver_time, optimized_parameters, optimize_keys, refe
     """
     with open(filename, "a", newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        
+        print("to ja state: ",state)
+        flat_state = np.array(state).flatten().tolist()
         # Zapisujemy czas i zoptymalizowane parametry
-        row = [solver_time] + [optimized_parameters[key] for key in optimize_keys]
+        row = [solver_time] + [optimized_parameters[key] for key in optimize_keys] + flat_state
         csvwriter.writerow(row)
-        
+        """
         # Zapisujemy 10 wierszy dla reference_trajectory
         csvwriter.writerow(["Trajektoria referencyjna:"])
         for ref in reference_trajectory:
             csvwriter.writerow(ref)
         
         # Zapisujemy 10 wierszy dla optimized_trajectory
-        csvwriter.writerow(["Trajektoria zoptymalizowanych parametrów:"])
+        csvwriter.writerow(["Trajektoria zoptymalizowanych parametrow:"])
         for opt in optimized_trajectory:
             csvwriter.writerow(opt)
+        """
             
 def main():
     """_summary_
@@ -54,12 +56,12 @@ def main():
     if not os.path.exists("dane"):
         os.makedirs("dane")
         
-    tEnd = 10
+    tEnd = 20
     sample_time = 0.5
     lambda_e = 1.0 # współczynnik błędu qr_d1
-    lambda_u = 0.0 # współczynnik błędu qr_d2
-    optimize_keys = ['l1','l3']  # Lista parametrów do optymalizacji
-    N_pred = 5
+    lambda_u = 0.4 # współczynnik błędu qr_d2
+    optimize_keys = ['l3']  # Lista parametrów do optymalizacji
+    N_pred = 20
     np.random.seed(123456789)
 
     Pi = np.pi
@@ -147,18 +149,18 @@ def main():
     # Tworzenie pliku CSV i zapis nagłówka
     with open(filename, "w", newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        parameter_names = ["czas"] + [f"parametr_{key}" for key in optimize_keys] 
-        trejectory = ["qr_d2[0]","qr_d2[1]","qr_d2[2]","qr_d1[0]","qr_d1[1]","qr_d1[2]"]
-        real_values = [f"wartosc_rzeczywista_{key} = {init_parameters[key]}" for key in optimize_keys]
+        parameter_names = ["czas"] + [f"parametr_{key}" for key in optimize_keys] + ["qr_d2[0]","qr_d2[1]","qr_d2[2]","qr_d1[0]","qr_d1[1]","qr_d1[2]"]
+        # trejectory = ["qr_d2[0]","qr_d2[1]","qr_d2[2]","qr_d1[0]","qr_d1[1]","qr_d1[2]"]
+        real_values =[","] + [f"wartosc_rzeczywista_{key} = {init_parameters[key]}" for key in optimize_keys]
         csvwriter.writerow(parameter_names )
-        csvwriter.writerow(trejectory)
+        # csvwriter.writerow(trejectory)
         csvwriter.writerow(real_values)
-        csvwriter.writerow(["Czas symulacji,wartosci optymalizowanych parametrow oraz Trajektoria referencyjna i dla zoptymalizowananego parametru w kazdej iteracji"])
+        csvwriter.writerow(["Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji"])
      
      
      
         # Optymalizacja parametrów dla t = 0.0
-    optimized_parameters, optimized_trajectory, reference_trajectory = optimize_parameters(
+    optimized_parameters = optimize_parameters(
         initial_parameters=init_parameters,
         current_parameters=parameters,
         current_state=solver.y,
@@ -178,7 +180,7 @@ def main():
     for key in optimize_keys:
         optimized_values_series[key].append(optimized_parameters[key])
 
-    save_to_csv(filename, solver.t, optimized_parameters, optimize_keys, reference_trajectory, optimized_trajectory)
+    save_to_csv(filename, solver.t, optimized_parameters, optimize_keys, solver.y)
 
                     
     while solver.successful() and solver.t < tEnd:
@@ -188,7 +190,7 @@ def main():
         youtput.append(solver.y)
 
         # 2. Optymalizacja parametrów na podstawie nowego stanuW
-        optimized_parameters, optimized_trajectory, reference_trajectory = optimize_parameters(
+        optimized_parameters= optimize_parameters(
             initial_parameters=init_parameters,
             current_parameters=parameters,
             current_state=solver.y,
@@ -209,7 +211,7 @@ def main():
             optimized_values_series[key].append(optimized_parameters[key])
 
         # 5. Zapis danych do pliku CSV
-        save_to_csv(filename, solver.t, optimized_parameters, optimize_keys, reference_trajectory, optimized_trajectory)
+        save_to_csv(filename, solver.t, optimized_parameters, optimize_keys, solver.y)
 
         
     t = np.array(t)
