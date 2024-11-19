@@ -28,7 +28,6 @@ def save_to_csv(filename, solver_time, optimized_parameters, optimize_keys,state
     """
     with open(filename, "a", newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        print("to ja state: ",state)
         flat_state = np.array(state).flatten().tolist()
         # Zapisujemy czas i zoptymalizowane parametry
         row = [solver_time] + [optimized_parameters[key] for key in optimize_keys] + flat_state
@@ -56,19 +55,19 @@ def main():
     if not os.path.exists("dane"):
         os.makedirs("dane")
         
-    tEnd = 20
+    tEnd = 4
     sample_time = 0.5
     lambda_e = 1.0 # współczynnik błędu qr_d1
-    lambda_u = 0.4 # współczynnik błędu qr_d2
-    optimize_keys = ['l3']  # Lista parametrów do optymalizacji
-    N_pred = 20
+    lambda_u = 1.0 # współczynnik błędu qr_d2
+    optimize_keys = ['m2']  # Lista parametrów do optymalizacji
+    N_pred = 10
     np.random.seed(123456789)
 
     Pi = np.pi
 
-    m1 = 50.0 # kg, masa pierwszego segmentu
+    m1 = 60.0 # kg, masa pierwszego segmentu
     m2 = 50.0 # kg, masa drugiego segmentu
-    m3 = 50.0 # kg, masa trzeciego segmentu
+    m3 = 40.0 # kg, masa trzeciego segmentu
 
     mc = m1 + m2 + m3
 
