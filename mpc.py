@@ -94,7 +94,7 @@ def optimize_parameters(initial_parameters, current_parameters, current_state, t
     reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt, t)
     
     # Ustawienie ograniczeń dla każdego parametru w optimize_keys
-    bounds = [(10, 100)] * len(optimize_keys)
+    bounds = [(1, 10)] * len(optimize_keys)
     
     # Wywołanie optymalizacji przy użyciu metody differential_evolution, używając objective_function bezpośrednio (wczesniej L-BFGS-B)
     result = differential_evolution(
@@ -102,8 +102,8 @@ def optimize_parameters(initial_parameters, current_parameters, current_state, t
         bounds, 
         args=(current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys, reference_trajectory),
         strategy='best1bin', 
-        maxiter=1000, 
-        tol=0.0001, 
+        maxiter=100, 
+        tol=0.01, 
         disp=True, 
         seed=42, 
         workers=-1,          # dla wielowątkowości

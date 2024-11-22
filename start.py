@@ -55,11 +55,11 @@ def main():
     if not os.path.exists("dane"):
         os.makedirs("dane")
         
-    tEnd = 4
+    tEnd = 10
     sample_time = 0.5
     lambda_e = 1.0 # współczynnik błędu qr_d1
     lambda_u = 1.0 # współczynnik błędu qr_d2
-    optimize_keys = ['m2']  # Lista parametrów do optymalizacji
+    optimize_keys = ['l1','l2','l3']  # Lista parametrów do optymalizacji
     N_pred = 10
     np.random.seed(123456789)
 
