@@ -94,8 +94,17 @@ def optimize_parameters(initial_parameters, current_parameters, current_state, t
     reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt, t)
     
     # Ustawienie ograniczeń dla każdego parametru w optimize_keys
-    bounds = [(1, 10)] * len(optimize_keys)
-    
+    #bounds = [(1, 10)] * len(optimize_keys)
+    bounds = []
+    for key in optimize_keys:
+        if key.startswith('m'):
+            bounds.append((10, 100))  # Granice dla kluczy zaczynających się od 'm'
+        elif key.startswith('l'):
+            bounds.append((1, 10))  # Granice dla kluczy zaczynających się od 'l'
+        else:
+            bounds.append((1, 100))  # Domyślne granice dla innych kluczy (opcjonalnie)
+  
+    print(f"Klucz: {optimize_keys}, Granice: {bounds}")        
     # Wywołanie optymalizacji przy użyciu metody differential_evolution, używając objective_function bezpośrednio (wczesniej L-BFGS-B)
     result = differential_evolution(
         objective_function, 

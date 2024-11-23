@@ -1,0 +1,3 @@
+czas,parametr_l1,parametr_l2,parametr_l3,parametr_m1,parametr_m2,parametr_m3,qr_d2[0],qr_d2[1],qr_d2[2],qr_d1[0],qr_d1[1],qr_d1[2]
+",",wartosc_rzeczywista_l1 = 2.0,wartosc_rzeczywista_l2 = 4.0,wartosc_rzeczywista_l3 = 3.0,wartosc_rzeczywista_m1 = 60.0,wartosc_rzeczywista_m2 = 50.0,wartosc_rzeczywista_m3 = 40.0
+Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji
