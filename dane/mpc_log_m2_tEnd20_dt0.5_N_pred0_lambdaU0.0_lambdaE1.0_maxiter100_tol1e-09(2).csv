@@ -1,0 +1,5 @@
+czas,parametr_m2,qr_d2[0],qr_d2[1],qr_d2[2],qr_d1[0],qr_d1[1],qr_d1[2]
+",",wartosc_rzeczywista_m2 = 50.0
+Czas symulacji oraz wartosci optymalizowanych parametrow w kazdej iteracji
+0,76.5075581674363,0.0,0.0,0.0,0.0,0.0,0.0
+0.5,76.5075581674363,-13.620091399426624,16.08749236605377,0.016620959519196017,-4.9022157085710205,4.743720097489065,0.03421487782550654

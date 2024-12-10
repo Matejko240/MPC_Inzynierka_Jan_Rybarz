@@ -88,7 +88,7 @@ def objective_function(optimized_values, current_parameters, current_state, t, N
     
     return cost
 
-def optimize_parameters(initial_parameters, current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys):
+def optimize_parameters(initial_parameters, current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys,iter,tol):
     
     # Tworzymy trajektorię referencyjną dla optymalizacji
     reference_trajectory = calculate_trajectory(current_state, initial_parameters, N_pred, dt, t)
@@ -111,8 +111,8 @@ def optimize_parameters(initial_parameters, current_parameters, current_state, t
         bounds, 
         args=(current_parameters, current_state, t, N_pred, dt, lambda_u, lambda_e, optimize_keys, reference_trajectory),
         strategy='best1bin', 
-        maxiter=100, 
-        tol=0.01, 
+        maxiter=iter, 
+        tol=tol,
         disp=True, 
         seed=42, 
         workers=-1,          # dla wielowątkowości

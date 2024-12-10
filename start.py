@@ -55,12 +55,14 @@ def main():
     if not os.path.exists("dane"):
         os.makedirs("dane")
         
-    tEnd = 10
+    tEnd = 20
     sample_time = 0.5
     lambda_e = 1.0 # współczynnik błędu qr_d1
-    lambda_u = 1.0 # współczynnik błędu qr_d2
-    optimize_keys = ['l1','l2','l3','m1','m2','m3']  # Lista parametrów do optymalizacji
-    N_pred = 10
+    lambda_u = 0.0 # współczynnik błędu qr_d2
+    optimize_keys = ['m2']  # Lista parametrów do optymalizacji
+    N_pred = 1
+    iter = 100
+    tol = 1e-9
     np.random.seed(123456789)
 
     Pi = np.pi
@@ -137,7 +139,7 @@ def main():
     print("Current parameters (parametry obecne):", parameters)
     
     # Nazwa bazowa pliku
-    base_name = f"dane/mpc_log_{'_'.join(optimize_keys)}_tEnd{tEnd}_dt{sample_time}_N_pred{N_pred}_lambdaU{lambda_u}_lambdaE{lambda_e}"
+    base_name = f"dane/mpc_log_{'_'.join(optimize_keys)}_tEnd{tEnd}_dt{sample_time}_N_pred{N_pred}_lambdaU{lambda_u}_lambdaE{lambda_e}_maxiter{iter}_tol{tol}"
     
     # Generowanie unikalnej nazwy pliku CSV
     filename = generate_unique_filename(base_name, ".csv")
@@ -168,7 +170,9 @@ def main():
         dt=sample_time,
         lambda_u=lambda_u,
         lambda_e=lambda_e,
-        optimize_keys=optimize_keys
+        optimize_keys=optimize_keys,
+        iter=iter,
+        tol=tol
     )
 
     # Aktualizacja parametrów po optymalizacji początkowej i przekazanie ich do solvera
@@ -198,7 +202,9 @@ def main():
             dt=sample_time,
             lambda_u=lambda_u,
             lambda_e=lambda_e,
-            optimize_keys=optimize_keys
+            optimize_keys=optimize_keys,
+            iter=iter,
+            tol=tol
         )
 
         # 3. Aktualizacja parametrów po optymalizacji i przekazanie ich do solvera

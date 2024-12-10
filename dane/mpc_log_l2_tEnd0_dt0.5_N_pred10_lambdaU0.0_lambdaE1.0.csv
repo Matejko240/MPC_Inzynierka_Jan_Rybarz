@@ -1,0 +1,4 @@
+czas,parametr_l2,qr_d2[0],qr_d2[1],qr_d2[2],qr_d1[0],qr_d1[1],qr_d1[2]
+",",wartosc_rzeczywista_l2 = 4.0
+maxiter=1000,  tol=1e-9
+0,4.000714331935057,0.0,0.0,0.0,0.0,0.0,0.0
